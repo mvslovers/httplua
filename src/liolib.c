@@ -26,9 +26,6 @@
 #include "lauxlib.h"
 #include "lualib.h"
 
-#define HTTPLUAX_PRIVATE	/* suppress defines for Lua functions */
-//#define luai_likely(x)		(x)
-//#define luai_unlikely(x)	(x)
 #include "clibcrt.h"
 #include "clibwto.h"
 #include "libufs.h"
