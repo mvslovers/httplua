@@ -1,0 +1,78 @@
+[project]
+name = "httplua"
+version = "1.0.0-dev"
+type = "application"
+
+[build]
+cflags = [
+	"-O1",
+	"-DLUA_USE_C89",
+	"-DLUA_USE_JUMPTABLE=0",
+	"-I./include",
+]
+
+[build.sources]
+c_dirs = ["src/"]
+
+[mvs.build.datasets.source]
+suffix = "SOURCE"
+dsorg = "PO"
+recfm = "FB"
+lrecl = 80
+blksize = 19040
+space = ["TRK", 100, 50, 50]
+
+[mvs.build.datasets.punch]
+suffix = "OBJECT"
+dsorg = "PO"
+recfm = "FB"
+lrecl = 80
+blksize = 19040
+space = ["TRK", 50, 20, 50]
+
+[mvs.build.datasets.ncalib]
+suffix = "NCALIB"
+dsorg = "PO"
+recfm = "U"
+lrecl = 0
+blksize = 19069
+space = ["TRK", 50, 20, 50]
+
+[mvs.build.datasets.syslmod]
+suffix = "LOAD"
+dsorg = "PO"
+recfm = "U"
+lrecl = 0
+blksize = 15040
+space = ["TRK", 50, 20, 10]
+
+[dependencies]
+"mvslovers/crent370" = ">=1.0.9"
+"mvslovers/lua370" = ">=1.0.2"
+"mvslovers/httpd" = ">=4.0.0-dev"
+"mvslovers/ufsd" = "=1.0.0-dev"
+
+# --- Load Modules ------------------------------------------------
+
+# Lua extension module (custom entry point, no CRT)
+[[link.module]]
+name = "HTTPLUAX"
+entry = "HTTPLUAX"
+options = ["SIZE=(4000K,40K)", "LIST", "MAP", "XREF", "RENT"]
+include = ["HTTPLUAX"]
+
+[link.module.dep_includes]
+"mvslovers/lua370" = "*"
+
+# Lua CGI handler
+[[link.module]]
+name = "HTTPLUA"
+entry = "@@CRT0"
+options = ["LIST", "MAP", "XREF", "RENT"]
+include = ["@@CRT1", "HTTPLUA"]
+
+[link.module.dep_includes]
+"mvslovers/ufsd" = "*"
+
+[release]
+version_files = ["VERSION"]
