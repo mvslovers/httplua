@@ -4,12 +4,7 @@ version = "1.0.0-dev"
 type = "module"
 
 [build]
-cflags = [
-	"-O1",
-	"-DLUA_USE_C89",
-	"-DLUA_USE_JUMPTABLE=0",
-	"-I./include",
-]
+cflags = ["-O1", "-DLUA_USE_C89", "-DLUA_USE_JUMPTABLE=0", "-DHTTPLUA_VERSION=\"1.0.0\"", "-I./include"]
 
 [build.sources]
 c_dirs = ["src/"]
@@ -49,7 +44,7 @@ space = ["TRK", 50, 20, 10]
 [dependencies]
 "mvslovers/crent370" = ">=1.0.9"
 "mvslovers/lua370" = ">=1.0.2"
-"mvslovers/httpd" = ">=4.0.0-dev"
+"mvslovers/httpd" = "=4.0.0-dev"
 "mvslovers/ufsd" = "=1.0.0-dev"
 
 # --- Load Modules ------------------------------------------------

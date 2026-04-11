@@ -8,8 +8,8 @@
 #include "clibthrd.h"
 #include "cliblink.h"
 #include "clibgrt.h"
-#include "httpcgi.h"
 #include "libufs.h"
+#include "httpcgi.h"
 #include "svc99.h"
 
 #define HTTPLUAX (httpd_luax)
@@ -759,7 +759,7 @@ static int open_http(lua_State *L) {
   // dumpstack(L, __func__ );
 
   /* create version */
-  lua_pushstring(L, httpd->version);
+  lua_pushstring(L, HTTPLUA_VERSION);
   lua_setfield(L, -2, "server_version");
 
   /* create vars table */

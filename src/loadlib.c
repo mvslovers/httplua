@@ -30,10 +30,10 @@
 #define HTTPLUAX_PRIVATE	/* suppress defines for Lua functions */
 //#define luai_likely(x)		(x)
 //#define luai_unlikely(x)	(x)
-#include "httpcgi.h"
-#include "libufs.h"
 #include "clibcrt.h"
 #include "clibwto.h"
+#include "libufs.h"
+#include "httpcgi.h"
 
 
 /*
