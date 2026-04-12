@@ -265,15 +265,15 @@ int main(int argc, char **argv) {
     return 12;
   }
 
-  /* save for our exit/exterbnal programs */
+  /* save for our exit/external programs */
   if (crt) {
-    // wtof("httplua.c:%s: crt=%p crt->crtufs=%p", __func__, crt, crt->crtufs);
     crtapp1 = crt->crtapp1;
     crtapp2 = crt->crtapp2;
     ufs = crt->crtufs;
     crt->crtapp1 = httpd;
     crt->crtapp2 = httpc;
-    crt->crtufs = httpc->ufs;
+    /* initialize UFS session (lazy init via HTTPD) */
+    crt->crtufs = http_get_ufs(httpc);
   }
 
   // wtof("%s: enter", argv[0]);
@@ -281,15 +281,20 @@ int main(int argc, char **argv) {
   // wtof("%s: ppa=0x%08X grt=0x%08X httpd=0x%08X httpc=0x%08X",
   // 	argv[0], ppa, grt, httpd, httpc);
 
-  /* get the request path string */
-  path = http_get_env(httpc, "REQUEST_PATH");
-  script = strrchr(path, '/');
-
-  // wtof("%s: path=\"%s\"", argv[0], path);
-  // wtof("%s: script=\"%s\"", argv[0], path);
-
+  /* SCRIPT_FILENAME is set by HTTPD for extension-based CGI routing
+     (e.g. CGI=HTTPLUA *.lua) — it contains the full UFS path. */
+  script = http_get_env(httpc, "SCRIPT_FILENAME");
   if (script) {
     rc = main_lua(httpd, httpc, script);
+  } else {
+    /* fallback: extract script name from REQUEST_PATH */
+    path = http_get_env(httpc, "REQUEST_PATH");
+    if (path)
+      script = strrchr(path, '/');
+    if (script)
+      script++;  /* skip '/' — pass bare filename, not a path */
+    if (script && *script)
+      rc = main_lua(httpd, httpc, script);
   }
 
 quit:
@@ -384,9 +389,6 @@ static int main_lua(HTTPD *httpd, HTTPC *httpc, const char *script) {
 
   // wtof("%s: enter script=\"%s\"", __func__, script);
 
-  while (*script == '/')
-    script++;
-
   /* create new Lua state */
   L = luaL_newstate();
   // wtof("%s: lua_State=0x%08X", __func__, L);
@@ -434,10 +436,27 @@ static int main_lua(HTTPD *httpd, HTTPC *httpc, const char *script) {
 
   // wtof("%s: ready to process script=%s", __func__, script);
 
-  /* Find the Lua script.  The only supported location is CGILUA_PATH
-   * which contains a semicolon-separated list of UFS path templates
-   * (Lua package.path style, with '?' as placeholder for the script name).
-   */
+  /* Full UFS path (from SCRIPT_FILENAME)? Open directly. */
+  if (script[0] == '/') {
+    char *uri = http_get_env(httpc, "REQUEST_PATH");
+    strcpy(dataset, script);
+    if (readable(dataset))
+      goto doit;
+
+    wtof("HTTPD404E HTTPLUA: script \"%s\" not found", dataset);
+    http_resp(httpc, 404);
+    http_printf(httpc, "Content-Type: text/plain\r\n");
+    http_printf(httpc, "\r\n");
+    http_printf(httpc, "HTTPLUA: script \"%s\" not found.\r\n",
+                uri ? uri : script);
+    goto quit;
+  }
+
+  /* Legacy path: strip leading slashes from script name,
+     then search CGILUA_PATH */
+  while (*script == '/')
+    script++;
+
   if (!cgilua_path || !cgilua_path[0]) {
     wtof("HTTPD404E HTTPLUA: script \"%s\" not found (PATH not configured)",
          script);
@@ -445,8 +464,8 @@ static int main_lua(HTTPD *httpd, HTTPC *httpc, const char *script) {
     http_printf(httpc, "Content-Type: text/plain\r\n");
     http_printf(httpc, "\r\n");
     http_printf(httpc, "HTTPLUA: script not found.\r\n"
-                "Configure PATH in Parmlib:"
-                "CGI=HTTPLUA /lua/* PATH=/path/to/lua\r\n");
+                "Configure in Parmlib: "
+                "CGI=HTTPLUA *.lua\r\n");
     goto quit;
   }
 
@@ -456,8 +475,7 @@ static int main_lua(HTTPD *httpd, HTTPC *httpc, const char *script) {
     char *rest;
 
     if (!pathnames) {
-      wtof("HTTPD404E HTTPLUA: script \"%s\" not found (PATH not configured)",
-           script);
+      wtof("HTTPD404E HTTPLUA: script \"%s\" not found", script);
       http_resp(httpc, 404);
       http_printf(httpc, "Content-Type: text/plain\r\n");
       http_printf(httpc, "\r\n");
@@ -469,7 +487,7 @@ static int main_lua(HTTPD *httpd, HTTPC *httpc, const char *script) {
     for (name = strtok(pathnames, ";"); name; name = strtok(rest, ";")) {
       rest = strtok(NULL, "");
       if (!dataset[0])
-        strcpy(dataset, name);  /* remember first path for error msg */
+        strcpy(dataset, name);
       if (readable(name)) {
         strcpy(dataset, name);
         free(pathnames);

@@ -814,14 +814,12 @@ typedef struct LoadF {
 } LoadF;
 
 
-static const char *getF (lua_State *L, void *ud, size_t *size) 
+static const char *getF (lua_State *L, void *ud, size_t *size)
 {
 	LoadF 	*lf 	= (LoadF *)ud;
 	UFSFILE	*ufp	= get_ufsfile(lf->f);
 
 	(void)L;  /* not used */
-
-	// wtof("lauxlib.c:%s: enter ufp=%p", __func__, ufp);
 
 	if (lf->n > 0) {  /* are there pre-read characters to be read? */
 		*size = lf->n;  /* return them (chars already in buffer) */
@@ -834,17 +832,13 @@ static const char *getF (lua_State *L, void *ud, size_t *size)
 		if (ufp) {
 			if (ufs_feof(ufp)) return NULL;
 			*size = ufs_fread(lf->buff, 1, sizeof(lf->buff), ufp);  /* read block */
-			// wtof("lauxlib.c:%s: ufs_fread() size=%d", __func__, *size);
 		}
 		else {
 			if (feof(lf->f)) return NULL;
 			*size = fread(lf->buff, 1, sizeof(lf->buff), lf->f);  /* read block */
-			// wtof("lauxlib.c:%s: fread() size=%d", __func__, *size);
 		}
 	}
 
-	// wtodumpf(lf->buff, *size, "%s: lf->buff", __func__);
-	// wtof("lauxlib.c:%s: exit", __func__);
 	return lf->buff;
 }
 
@@ -893,11 +887,11 @@ static int skipBOM (FILE *f)
 ** first "valid" character of the file (after the optional BOM and
 ** a first-line comment).
 */
-static int skipcomment (FILE *f, int *cp) 
+static int skipcomment (FILE *f, int *cp)
 {
     UFSFILE *ufp	= get_ufsfile(f);
 	int c = *cp = skipBOM(f);
-  
+
 	if (c == '#') {  /* first line is a comment (Unix exec. file)? */
 		if (ufp) {
 			do {  /* skip first line */
@@ -953,32 +947,28 @@ luaL_loadfilex (lua_State *L, const char *filename, const char *mode)
 	}
 	
 	lf.n = 0;
-	if (skipcomment(lf.f, &c))  /* read initial portion */
-		lf.buff[lf.n++] = '\n';  /* add newline to correct line numbers */
+	/* UFS files: skip BOM/comment handling because ufs_fgetc and
+	   ufs_fread don't share the same read buffer — mixing them
+	   loses data.  Read everything through getF instead. */
+	if (!get_ufsfile(lf.f)) {
+		/* non-UFS (dataset): use normal skipBOM/skipcomment */
+		if (skipcomment(lf.f, &c))
+			lf.buff[lf.n++] = '\n';
 
-	if (c == LUA_SIGNATURE[0]) {  /* binary file? */
-		lf.n = 0;  /* remove possible newline */
-		if (filename) {  /* "real" file? */
-			ufp = get_ufsfile(lf.f);
-			
-			if (ufp) {
-				ufs_fclose(&ufp);
-				lf.f = NULL;
-				ufp = ufs_fopen(ufs, filename, "rb");
-				// wtof("lauxlib.c:%s: ufs_fopen() ufp=%p", __func__, ufp);
-				if (ufp) lf.f = (void*)((unsigned)ufp | 0x80000000);
+		if (c == LUA_SIGNATURE[0]) {  /* binary file? */
+			lf.n = 0;
+			if (filename) {
+				lf.f = freopen(filename, "rb", lf.f);
+				if (lf.f == NULL) return errfile(L, "reopen", fnameindex);
+				skipcomment(lf.f, &c);
 			}
-			else {
-				lf.f = freopen(filename, "rb", lf.f);  /* reopen in binary mode */
-				// wtof("lauxlib.c:%s: freopen() lf.f=%p", __func__, lf.f);
-			}
-			if (lf.f == NULL) return errfile(L, "reopen", fnameindex);
-			skipcomment(lf.f, &c);  /* re-read initial portion */
 		}
-	}
 
-	if (c != EOF)
-		lf.buff[lf.n++] = c;  /* 'c' is the first character of the stream */
+		if (c != EOF)
+			lf.buff[lf.n++] = c;
+	}
+	/* UFS files: no pre-read. lf.n stays 0, getF reads everything
+	   via ufs_fread without mixing in ufs_fgetc calls. */
 
 	status = lua_load(L, getF, &lf, lua_tostring(L, -1), mode);
 	// wtof("lauxlib.c:%s: lua_load() status=%d", __func__, status);
