@@ -4,7 +4,7 @@ version = "1.0.0-dev"
 type = "module"
 
 [build]
-cflags = ["-O1", "-DLUA_USE_C89", "-DLUA_USE_JUMPTABLE=0", "-DHTTPLUA_VERSION=\"1.0.0\"", "-I./include"]
+cflags = ["-O1", "-DLUA_USE_C89", "-DLUA_USE_JUMPTABLE=0", "-DHTTPLUA_VERSION=\"1.0.0\""]
 
 [build.sources]
 c_dirs = ["src/"]
@@ -49,25 +49,17 @@ space = ["TRK", 50, 20, 10]
 
 # --- Load Modules ------------------------------------------------
 
-# Lua extension module (custom entry point, no CRT)
-[[link.module]]
-name = "HTTPLUAX"
-entry = "HTTPLUAX"
-options = ["SIZE=(4000K,40K)", "LIST", "MAP", "XREF", "RENT"]
-include = ["HTTPLUAX"]
-
-[link.module.dep_includes]
-"mvslovers/lua370" = "*"
-
-# Lua CGI handler
+# Lua CGI handler — links lua370 directly (no HTTPLUAX vector)
 [[link.module]]
 name = "HTTPLUA"
 entry = "@@CRT0"
-options = ["LIST", "MAP", "XREF", "RENT"]
-include = ["@@CRT1", "HTTPLUA"]
+options = ["SIZE=(4000K,40K)", "LIST", "MAP", "XREF", "RENT"]
+max_rc = 4
+include = ["@@CRT1", "HTTPLUA", "LAUXLIB", "LOADLIB", "LIOLIB"]
 
 [link.module.dep_includes]
 "mvslovers/ufsd" = "*"
+"mvslovers/lua370" = "*"
 
 [release]
 version_files = ["VERSION"]

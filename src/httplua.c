@@ -12,12 +12,10 @@
 #include "httpcgi.h"
 #include "svc99.h"
 
-#define HTTPLUAX (httpd_luax)
-#include "httpluax.h"
-
-/* httpd_luax is set from the HTTPLUAX load module at startup
-   (see httpd_luax_init below). */
-static LUAX *httpd_luax = NULL;
+/* lua370 headers — linked directly, no HTTPLUAX vector */
+#include "lua.h"
+#include "lauxlib.h"
+#include "lualib.h"
 
 extern HTTPD *cgihttpd(void);
 extern HTTPC *cgihttpc(void);
@@ -307,7 +305,7 @@ quit:
 }
 
 static int readable(const char *filename) {
-  CLIBCRT *crt = __getcrt();
+  CLIBCRT *crt = __crtget();
   UFS *ufs = crt ? crt->crtufs : NULL;
   UFSFILE *ufp = NULL;
   FILE *f = NULL;
@@ -381,7 +379,6 @@ static int main_lua(HTTPD *httpd, HTTPC *httpc, const char *script) {
   unsigned errors = 0;
   char *path = NULL;
   char dataset[256];
-  char *cgilua_dataset = getenv("CGILUA_DATASET");
   char *cgilua_path    = getenv("CGILUA_PATH");
   char *cgilua_cpath   = getenv("CGILUA_CPATH");
 
@@ -437,33 +434,42 @@ static int main_lua(HTTPD *httpd, HTTPC *httpc, const char *script) {
 
   // wtof("%s: ready to process script=%s", __func__, script);
 
-  /* Here we're formatting the dataset stirng with the script
-   * member name to be found in the PDS allocated to the
-   * LUALIB DD. This should prevent any unwanted execution
-   * of Lua scripts from outside datasets.
+  /* Find the Lua script.  The only supported location is CGILUA_PATH
+   * which contains a semicolon-separated list of UFS path templates
+   * (Lua package.path style, with '?' as placeholder for the script name).
    */
-  rc = strlen(script);
-  if (rc > 8)
-    rc = 8;
-  if (cgilua_dataset && cgilua_dataset[0]) {
-    sprintf(dataset, "%s(%.*s)", cgilua_dataset, rc, script);
-    if (readable(dataset))
-      goto doit;
+  if (!cgilua_path || !cgilua_path[0]) {
+    wtof("HTTPD404E HTTPLUA: script \"%s\" not found (PATH not configured)",
+         script);
+    http_resp(httpc, 404);
+    http_printf(httpc, "Content-Type: text/plain\r\n");
+    http_printf(httpc, "\r\n");
+    http_printf(httpc, "HTTPLUA: script not found.\r\n"
+                "Configure PATH in Parmlib:"
+                "CGI=HTTPLUA /lua/* PATH=/path/to/lua\r\n");
+    goto quit;
   }
 
-  // wtof("%s: cgilua_path=\"%s\"", __func__, cgilua_path);
-  if (cgilua_path && cgilua_path[0]) {
+  {
     char *pathnames = make_pathnames(cgilua_path, script);
     char *name;
     char *rest;
 
-    if (!pathnames)
-      goto dodd;
-    // wtof("%s: pathnames=\"%s\"", __func__, pathnames);
+    if (!pathnames) {
+      wtof("HTTPD404E HTTPLUA: script \"%s\" not found (PATH not configured)",
+           script);
+      http_resp(httpc, 404);
+      http_printf(httpc, "Content-Type: text/plain\r\n");
+      http_printf(httpc, "\r\n");
+      http_printf(httpc, "HTTPLUA: script not found.\r\n");
+      goto quit;
+    }
 
+    dataset[0] = '\0';
     for (name = strtok(pathnames, ";"); name; name = strtok(rest, ";")) {
       rest = strtok(NULL, "");
-      // wtof("%s: name=\"%s\" rest=\"%s\"", __func__, name, rest);
+      if (!dataset[0])
+        strcpy(dataset, name);  /* remember first path for error msg */
       if (readable(name)) {
         strcpy(dataset, name);
         free(pathnames);
@@ -473,21 +479,12 @@ static int main_lua(HTTPD *httpd, HTTPC *httpc, const char *script) {
     free(pathnames);
   }
 
-dodd:
-  sprintf(dataset, "DD:CGILUA(%.*s)", rc, script);
-  if (readable(dataset))
-    goto doit;
-
-  /* last chance, see if the request path exist */
-  script = http_get_env(httpc, "REQUEST_PATH");
-  if (script) {
-    strcpy(dataset, script);
-    if (readable(dataset))
-      goto doit;
-  }
-
-  wtof("HTTPD417I CGI Lua script \"%s\" is not readable or does not exist",
-       script);
+  /* script not found in any configured path */
+  wtof("HTTPD404E HTTPLUA: script \"%s\" not found", dataset);
+  http_resp(httpc, 404);
+  http_printf(httpc, "Content-Type: text/plain\r\n");
+  http_printf(httpc, "\r\n");
+  http_printf(httpc, "HTTPLUA: script \"%s\" not found.\r\n", script);
   goto quit;
 
 doit:
