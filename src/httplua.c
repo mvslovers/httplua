@@ -20,6 +20,18 @@
 extern HTTPD *cgihttpd(void);
 extern HTTPC *cgihttpc(void);
 
+/* the CGI entry (__start) calls main(), which is defined further down */
+int main(int argc, char **argv);
+
+/* libc370 routines that currently lack a usable MVS prototype: loadenv/tzset/
+   __exit have no public header, and mvssupa.h declares __svc99 only under
+   #ifdef MUSIC. These ought to live in libc370's headers (time.h / clibenv.h /
+   clibcrt.h / mvssupa.h). */
+extern int  loadenv(const char *ddname);
+extern void tzset(void);
+extern void __exit(int rc);
+extern int  __svc99(void *rb);
+
 #define httpx http_get_httpx(httpd)
 
 static int alloc_dummy(char *ddname);
