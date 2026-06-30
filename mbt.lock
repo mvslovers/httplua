@@ -4,8 +4,8 @@
     "version": "4.0.0-dev"
   },
   "mvslovers/lua370": {
-    "sha256": "81011525ba9f3164727b1e98223dc46b8921043f0c31441224e1e25f8b0c238d",
-    "version": "1.0.3-dev"
+    "sha256": "1516ded540bdfc8a4b5fc62e2300ea93110f47834155828f4e15b2c78bceb500",
+    "version": "1.1.0-dev"
   },
   "mvslovers/ufsd": {
     "sha256": "c8c8371d19f8b3212eaa1bfa9765ab6a49a2f5a0e11d0083b0f5f85f320ae3ac",

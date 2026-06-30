@@ -24,7 +24,7 @@ startup = "crt1"
 sources = ["src/*.c"]
 
 [dependencies]
-"mvslovers/lua370" = ">=1.0.3-dev"
+"mvslovers/lua370" = "=1.1.0-dev"
 "mvslovers/httpd" = "=4.0.0-dev"
 "mvslovers/ufsd" = "=1.0.0-dev"
 
