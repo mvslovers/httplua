@@ -10,6 +10,7 @@ cflags = [
     "-std=gnu99",
     "-DLUA_USE_C89",
     "-DLUA_USE_JUMPTABLE=0",
+    "-DLUA_USE_CTYPE=1",
     '-DHTTPLUA_VERSION=\"$(PROJECT_VERSION)\"',
 ]
 
