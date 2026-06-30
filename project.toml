@@ -1,65 +1,31 @@
 [project]
 name = "httplua"
 version = "1.0.0-dev"
-type = "module"
+type = "application"
 
 [build]
-cflags = ["-O1", "-DLUA_USE_C89", "-DLUA_USE_JUMPTABLE=0", "-DHTTPLUA_VERSION=\"1.0.0\""]
+# gnu99 for the CGI glue (httplua/cgihttpc/cgihttpd); LUA_USE_C89 +
+# LUA_USE_JUMPTABLE=0 must match lua370's build so the Lua ABI lines up.
+cflags = [
+    "-std=gnu99",
+    "-DLUA_USE_C89",
+    "-DLUA_USE_JUMPTABLE=0",
+    '-DHTTPLUA_VERSION=\"$(PROJECT_VERSION)\"',
+]
 
-[build.sources]
-c_dirs = ["src/"]
-
-[mvs.build.datasets.source]
-suffix = "SOURCE"
-dsorg = "PO"
-recfm = "FB"
-lrecl = 80
-blksize = 19040
-space = ["TRK", 100, 50, 50]
-
-[mvs.build.datasets.punch]
-suffix = "OBJECT"
-dsorg = "PO"
-recfm = "FB"
-lrecl = 80
-blksize = 19040
-space = ["TRK", 50, 20, 50]
-
-[mvs.build.datasets.ncalib]
-suffix = "NCALIB"
-dsorg = "PO"
-recfm = "U"
-lrecl = 0
-blksize = 19069
-space = ["TRK", 50, 20, 50]
-
-[mvs.build.datasets.syslmod]
-suffix = "LOAD"
-dsorg = "PO"
-recfm = "U"
-lrecl = 0
-blksize = 15040
-space = ["TRK", 50, 20, 10]
+# Lua CGI handler. sources globs the CGI glue (httplua/cgihttpc/cgihttpd) plus
+# the CGI-patched Lua overrides (lauxlib/liolib/loadlib) — these are linked
+# directly, so they win over lua370's archived versions (autocall only pulls
+# undefined symbols). startup=crt1 for the threading runtime (@@CRT1).
+[[module]]
+name = "HTTPLUA"
+startup = "crt1"
+sources = ["src/*.c"]
 
 [dependencies]
-"mvslovers/crent370" = ">=1.0.9"
-"mvslovers/lua370" = ">=1.0.2"
+"mvslovers/lua370" = ">=1.0.3-dev"
 "mvslovers/httpd" = "=4.0.0-dev"
 "mvslovers/ufsd" = "=1.0.0-dev"
-
-# --- Load Modules ------------------------------------------------
-
-# Lua CGI handler — links lua370 directly (no HTTPLUAX vector)
-[[link.module]]
-name = "HTTPLUA"
-entry = "@@CRT0"
-options = ["SIZE=(4000K,40K)", "LIST", "MAP", "XREF", "RENT"]
-max_rc = 4
-include = ["@@CRT1", "HTTPLUA", "LAUXLIB", "LOADLIB", "LIOLIB"]
-
-[link.module.dep_includes]
-"mvslovers/ufsd" = "*"
-"mvslovers/lua370" = "*"
 
 [release]
 version_files = ["VERSION"]
