@@ -7,7 +7,7 @@ kind = "application"
 
 [toolchain]
 cc370 = "1.4.0"
-libc370 = "2.6.0"
+libc370 = "2.6.1"
 mbt = "3.0"
 
 [build]
