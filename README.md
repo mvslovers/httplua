@@ -17,27 +17,28 @@ builds a single load module, **HTTPLUA**.
 
 ## Building
 
-httplua uses [mbt](https://github.com/mvslovers/mbt) v2 — a host build with the
-**cc370** toolchain. MVS is only touched by `make deploy`.
+httplua uses [mbt](https://github.com/mvslovers/mbt) 3 — a host build with the
+**cc370** toolchain. MVS is only touched by `mbt deploy`.
 
 ### Prerequisites
 
 - The **cc370** host toolchain (it also provides the **libc370** sysroot)
-- **Python 3.12+**
-- An MVS 3.8j system reachable over IP (for `make deploy`)
+- **mbt 3** on your `PATH` (`mbt doctor` checks the toolchain too)
+- An MVS 3.8j system reachable over IP (for `mbt deploy`), set up once per
+  machine as an mbt target (`mbt target import .env --name <name>`, see mbt's
+  `docs/MIGRATION.md`)
 
 ### Build
 
 ```bash
-git clone --recursive https://github.com/mvslovers/httplua.git
+git clone https://github.com/mvslovers/httplua.git
 cd httplua
-cp .env.example .env     # MVS connection for make deploy
-make deps                # stage lua370, httpd, ufsd
-make                     # build/HTTPLUA (on the host)
-make deploy              # -> IBMUSER.HTTPLUA.V1R0M0D.LINKLIB
+mbt deps                 # stage lua370, httpd, ufsd
+mbt build                # build/HTTPLUA (on the host)
+mbt deploy               # -> HTTPLUA.DEV.LINKLIB
 ```
 
-Dependencies (`project.toml`): `lua370` (the Lua engine, statically linked),
+Dependencies (`mbt.toml`): `lua370` (the Lua engine, statically linked),
 `httpd` (CGI interface), `ufsd` (UFS access). `libc370` is the cc370 sysroot.
 
 ## Installing / activating

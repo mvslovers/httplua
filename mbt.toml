@@ -1,0 +1,25 @@
+schema = 3
+
+[project]
+name = "httplua"
+version = "1.0.0-dev"
+kind = "application"
+
+[toolchain]
+cc370 = "1.4.0"
+libc370 = "2.6.0"
+mbt = "3.0"
+
+[build]
+cflags = ["-DLUA_USE_C89", "-DLUA_USE_JUMPTABLE=0", "-DLUA_USE_CTYPE=1"]
+
+[module.HTTPLUA]
+dep_startup = true
+rent = true
+reus = true
+sources = ["src/*.c"]
+
+[dependencies]
+"mvslovers/lua370" = ">=1.2.0-dev"
+"mvslovers/httpd" = ">=4.2.0-dev"
+"mvslovers/ufsd" = ">=1.4.0-dev"

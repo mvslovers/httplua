@@ -3,10 +3,6 @@
 *.o
 *.d
 
-# Build artifacts
-*.jcl
-.build-warnings
-
 # IDE
 *.geany
 compile_commands.json
@@ -17,7 +13,6 @@ compile_commands.json
 # Build system (mbt)
 .mbt/
 build/
-contrib/
 dist/
 *.xmit
 
