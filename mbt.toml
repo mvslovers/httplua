@@ -1,7 +1,9 @@
+schema = 3
+
 [project]
 name = "httplua"
 version = "1.0.0-dev"
-type = "application"
+kind = "application"
 
 [build]
 # gnu99 for the CGI glue (httplua/cgihttpc/cgihttpd); LUA_USE_C89 +
@@ -17,8 +19,7 @@ cflags = [
 # the CGI-patched Lua overrides (lauxlib/liolib/loadlib) — these are linked
 # directly, so they win over lua370's archived versions (autocall only pulls
 # undefined symbols).
-[[module]]
-name = "HTTPLUA"
+[module.HTTPLUA]
 # httpd.a defines @@START (its CGI launcher), so mbt asks which one to take
 # (mvslovers/mbt#62). httplua.c carries its own __start (@@START), which is
 # linked directly and wins either way.
@@ -34,13 +35,10 @@ sources = ["src/*.c"]
 "mvslovers/httpd" = ">=4.2.0-dev"
 "mvslovers/ufsd" = ">=1.4.0-dev"
 
-
 [toolchain]
-# Pins the refs release.yml builds the published artifacts against; build.yml
-# deliberately keeps floating on main so a cc370/libc370 regression surfaces
-# in a PR build (mbt#68). libc370 2.4.0 and later need cc370 >= 1.4.0 and no
-# longer ship crt0.o/crt1.o, which mbt v2.2.0 does not look for.
+# The versions release.yml builds the published artifacts with; build.yml
+# deliberately follows the tip of cc370 and libc370, so a regression there
+# surfaces in a PR build (mbt#68).
 cc370 = "1.4.0"
 libc370 = "2.6.0"
-[release]
-version_files = ["VERSION"]
+mbt = "3.0"

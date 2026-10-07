@@ -16,18 +16,19 @@ vector was removed in #2 — lua370 is now linked directly.)
 build defines `LUA_USE_C89`, `LUA_USE_JUMPTABLE=0` and `LUA_USE_CTYPE=1` to match
 lua370's ABI and its EBCDIC-correct lexer (see **Encoding**).
 
-## Build (mbt v2)
+## Build (mbt 3)
 
-httplua uses [mbt](https://github.com/mvslovers/mbt) v2 (cc370 host build).
-`make` runs entirely on the host; MVS is only touched by `make deploy`.
+httplua uses [mbt](https://github.com/mvslovers/mbt) 3 (cc370 host build), the
+`mbt` program on the `PATH`, pinned by `[toolchain] mbt` in `mbt.toml`.
+`mbt build` runs entirely on the host; MVS is only touched by `mbt deploy`.
 
 ```bash
-make deps     # resolve + stage lua370, httpd, ufsd into .mbt/deps
-make          # cross-compile + link the HTTPLUA load module -> build/HTTPLUA
-make deploy   # XMIT + upload + RECEIVE into IBMUSER.HTTPLUA.V1R0M0D.LINKLIB
+mbt deps     # resolve + stage lua370, httpd, ufsd into .mbt/deps
+mbt build    # cross-compile + link the HTTPLUA load module -> build/HTTPLUA
+mbt deploy   # XMIT + upload + RECEIVE into HTTPLUA.DEV.LINKLIB
 ```
 
-### Dependencies (project.toml)
+### Dependencies (mbt.toml)
 
 | Dependency | Purpose |
 |------------|---------|
@@ -85,7 +86,7 @@ to the response codepage.
 
 ## Deploy / activation
 
-`make deploy` only writes the deploy LINKLIB (`IBMUSER.HTTPLUA.V1R0M0D.LINKLIB`).
+`mbt deploy` only writes the deploy LINKLIB (`HTTPLUA.DEV.LINKLIB`).
 To activate under a running httpd:
 1. IEBCOPY the `HTTPLUA` member into httpd's load library (e.g. `HTTPD.LINKLIBT`).
 2. `MOD=HTTPLUA *.lua` (+ `DOCROOT`) in the httpd parmlib.
