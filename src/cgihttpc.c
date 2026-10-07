@@ -1,6 +1,5 @@
-#include "clibcrt.h"
-#include "clibgrt.h"
-#include "clibwto.h"
+#include <mvs/crt.h>
+#include <mvs/wto.h>
 #include "httpcgi.h"
 
 HTTPC *cgihttpc(void)

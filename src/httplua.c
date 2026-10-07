@@ -1,16 +1,15 @@
 /* HTTPLUA.C - CGI Program, REST style CGI program to execute lua scripts */
-#include "clibary.h"
-#include "clibos.h"
-#include "clibppa.h"
-#include "clibcrt.h"
-#include "clibenv.h"
-#include "clibwto.h"
-#include "clibthrd.h"
-#include "cliblink.h"
-#include "clibgrt.h"
+#include <ext/array.h>
+#include <mvs/crt.h>
+#include <mvs/env.h>
+#include <mvs/wto.h>
+#include <mvs/thread.h>
+#include <mvs/link.h>
+#include <ext/strutil.h>
 #include "libufs.h"
 #include "httpcgi.h"
-#include "svc99.h"
+#include <mvs/dynalloc.h>
+#include <buildstamp.h>
 
 /* lua370 headers — linked directly, no HTTPLUAX vector */
 #include "lua.h"
@@ -44,7 +43,6 @@ static int main_lua(HTTPD *httpd, HTTPC *httpc, const char *script);
 static void dumpstack(lua_State *L, const char *funcname);
 static int setLuaPath(lua_State *L, const char *path);
 static int setLuaCPath(lua_State *L, const char *path);
-static char *getLuaPath(lua_State *L);
 
 static int open_http(lua_State *L);
 
@@ -66,8 +64,10 @@ int __start(char *p, char *pgmname, int tsojbid, void **pgmr1) {
   char *argv[MAXPARMS + 1];
   int rc;
   int parmLen;
-  int progLen;
+  int progLen = 0;
   char parmbuf[310];
+
+  (void)tsojbid; /* part of the CGI calling convention, unused here */
 
   /* we're going to process the callers parameter list first so we
      can decide is we'll bypass the opens for the permanent datasets.
@@ -164,7 +164,7 @@ int __start(char *p, char *pgmname, int tsojbid, void **pgmr1) {
   /* initialize time zone offset for this thread */
   tzset();
 
-  if (parmLen >= sizeof(parmbuf) - 2) {
+  if (parmLen >= (int)(sizeof(parmbuf) - 2)) {
     parmLen = sizeof(parmbuf) - 1 - 2;
   }
   if (parmLen < 0)
@@ -256,7 +256,6 @@ quit:
 
 int main(int argc, char **argv) {
   int rc = 0;
-  CLIBPPA *ppa = __ppaget();
   CLIBGRT *grt = __grtget();
   CLIBCRT *crt = __crtget();
   UFS *ufs = NULL;
@@ -266,6 +265,8 @@ int main(int argc, char **argv) {
   HTTPC *httpc = grt->grtapp2;
   char *path = NULL;
   char *script = NULL;
+
+  (void)argc;
 
   if (!httpd) {
     wtof("This program %s must be called by the HTTPD web server%s", argv[0],
@@ -309,7 +310,6 @@ int main(int argc, char **argv) {
       rc = main_lua(httpd, httpc, script);
   }
 
-quit:
   if (crt) {
     /* restore crt values */
     crt->crtapp1 = crtapp1;
@@ -360,7 +360,6 @@ static char *make_pathnames(const char *paths, const char *script) {
   char *pathname = NULL;
   int pathcount = 1;
   int scriptlen = strlen(script);
-  int i;
   char *p;
 
   // wtof("httplua.c:%s: enter paths=\"%s\" script=\"%s\"", __func__, paths,
@@ -587,7 +586,6 @@ quit:
 }
 
 static int setLuaPath(lua_State *L, const char *path) {
-  HTTPD *httpd = cgihttpd();
 
   lua_getglobal(L, "package");
 
@@ -603,7 +601,6 @@ static int setLuaPath(lua_State *L, const char *path) {
 }
 
 static int setLuaCPath(lua_State *L, const char *path) {
-  HTTPD *httpd = cgihttpd();
 
   lua_getglobal(L, "package");
 
@@ -617,25 +614,7 @@ static int setLuaCPath(lua_State *L, const char *path) {
   return 0; // all done!
 }
 
-static char *getLuaPath(lua_State *L) {
-  HTTPD *httpd = cgihttpd();
-  char *path;
-
-  lua_getglobal(L, "package");
-  lua_getfield(L, -1,
-               "path"); // get field "path" from table at top of stack (-1)
-
-  path = strdup(lua_tostring(L, -1)); // grab path string from top of stack
-  // wtof("%s: path=\"%s\"", __func__, path);
-
-  lua_pop(L, 1); // remove path string from stack
-  lua_pop(L, 1); // remove package table from stack
-
-  return path; // don't forget to free this when your done
-}
-
 static void dumpstack(lua_State *L, const char *funcname) {
-  HTTPD *httpd = cgihttpd();
   int top = lua_gettop(L);
   int i;
   int j;
@@ -643,7 +622,6 @@ static void dumpstack(lua_State *L, const char *funcname) {
 
   wtof("%s Stack Dump (%d)", funcname, top);
   for (i = 1, j = -top; i <= top; i++, j++) {
-    const char *typename = luaL_typename(L, i);
     sprintf(buf, "%3d (%d) %.12s", i, j, luaL_typename(L, i));
     switch (lua_type(L, i)) {
     case LUA_TNUMBER:
@@ -772,7 +750,6 @@ static int create_lua_vars(lua_State *L) {
 }
 
 static int open_http(lua_State *L) {
-  HTTPD *httpd = cgihttpd();
   luaL_Reg reg[] = {
       {"print", http_lua_print},
       {"publish", http_lua_publish},
@@ -786,7 +763,7 @@ static int open_http(lua_State *L) {
   // dumpstack(L, __func__ );
 
   /* create version */
-  lua_pushstring(L, HTTPLUA_VERSION);
+  lua_pushstring(L, MBT_VERSION);
   lua_setfield(L, -2, "server_version");
 
   /* create vars table */
@@ -805,9 +782,11 @@ static int process_print(HTTPD *httpd, HTTPC *httpc, const char *buf) {
     /* looks like a HTTP response header */
     char *tmp = strdup(buf);
     if (tmp) {
-      char *p1 = strtok(tmp, " ");  /* HTTP/1.0 */
-      char *p2 = strtok(NULL, " "); /* nnn */
-      char *p3 = strtok(NULL, "");  /* OK or whatever */
+      char *p2;
+
+      strtok(tmp, " ");             /* HTTP/1.0 */
+      p2 = strtok(NULL, " ");       /* nnn */
+      strtok(NULL, "");             /* OK or whatever */
 
       if (p2)
         httpc->resp = atoi(p2);
@@ -855,15 +834,17 @@ static int process_stdout(HTTPD *httpd, HTTPC *httpc) {
   if (!fp)
     goto quit;
 
-  while (p = fgets(buf, sizeof(buf), fp)) {
+  while ((p = fgets(buf, sizeof(buf), fp))) {
     if (!lines) {
       if (!httpc->resp && __patmat(buf, "HTTP/?.? *")) {
         /* looks like a HTTP response header */
         char *tmp = strdup(buf);
         if (tmp) {
-          char *p1 = strtok(tmp, " ");  /* HTTP/1.0 */
-          char *p2 = strtok(NULL, " "); /* nnn */
-          char *p3 = strtok(NULL, "");  /* OK or whatever */
+          char *p2;
+
+          strtok(tmp, " ");             /* HTTP/1.0 */
+          p2 = strtok(NULL, " ");       /* nnn */
+          strtok(NULL, "");             /* OK or whatever */
 
           if (p2)
             httpc->resp = atoi(p2);
@@ -904,6 +885,9 @@ static int process_stderr(HTTPD *httpd, HTTPC *httpc, const char *script) {
   char buf[256];
   char ddstderr[12] = "DD:xxxxxxxx";
 
+  (void)httpd;
+  (void)httpc;
+
   if (!stderr)
     goto quit;
 
@@ -916,7 +900,7 @@ static int process_stderr(HTTPD *httpd, HTTPC *httpc, const char *script) {
   if (!fp)
     goto quit;
 
-  while (p = fgets(buf, sizeof(buf), fp)) {
+  while ((p = fgets(buf, sizeof(buf), fp))) {
     if (!errors) {
       wtof("HTTPD500I CGI Program HTTPLUA script \"%s\"", script);
     }
@@ -940,7 +924,7 @@ static int free_alloc(const char *ddname) {
   int err = 1;
   unsigned count = 0;
   TXT99 **txt99 = NULL;
-  RB99 rb99 = {0};
+  RB99 rb99 = {.len = 0};
 
   // wtof("%s: enter ddname=\"%s\"", __func__, ddname);
 
@@ -983,7 +967,7 @@ static int alloc_temp(char *ddname, const char *tmpname) {
   int err = 1;
   unsigned count = 0;
   TXT99 **txt99 = NULL;
-  RB99 rb99 = {0};
+  RB99 rb99 = {.len = 0};
   char tempname[40];
 
   // wtof("%s: enter ddname=\"%s\"", __func__, ddname);
@@ -1071,7 +1055,7 @@ static int alloc_dummy(char *ddname) {
   int err = 1;
   unsigned count = 0;
   TXT99 **txt99 = NULL;
-  RB99 rb99 = {0};
+  RB99 rb99 = {.len = 0};
 
   // wtof("%s: enter ddname=\"%s\"", __func__, ddname);
 
