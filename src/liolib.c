@@ -599,7 +599,7 @@ static int test_eof (lua_State *L, FILE *f)
 
 static int read_line (lua_State *L, FILE *f, int chop) {
   luaL_Buffer b;
-  int c;
+  int c = EOF;  /* always set by the loop; -O1 cannot see that */
   luaL_buffinit(L, &b);
   do {  /* may need to read several chunks to get whole line */
     char *buff = luaL_prepbuffer(&b);  /* preallocate buffer space */
@@ -785,7 +785,7 @@ static int g_write (lua_State *L, FILE *f, int arg)
 					: sprintf(buf, LUA_NUMBER_FMT,
 								(LUAI_UACNUMBER)lua_tonumber(L, arg));
 				len = strlen(buf);
-				status = status && (ufs_fwrite(buf, sizeof(char), len, ufp) == len);
+				status = status && (ufs_fwrite(buf, sizeof(char), len, ufp) == (UINT32)len);
 			}
 			else {
 				size_t l;

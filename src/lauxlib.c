@@ -58,8 +58,8 @@ static int is_member(const char *mem)
 	
 	for(i=0; mem[i] && !(mem[i]==')'); i++) {
 		if (i > 7) return 0;
-		if (i==0 && (isalpha(mem[i]) || strchr("@#$", mem[i]))) continue;
-		if (i >0 && (isalnum(mem[i]) || strchr("@#$", mem[i]))) continue;
+		if (i==0 && (isalpha((unsigned char)mem[i]) || strchr("@#$", mem[i]))) continue;
+		if (i >0 && (isalnum((unsigned char)mem[i]) || strchr("@#$", mem[i]))) continue;
 		return 0; // invalid character for member name
 	}
 
@@ -103,10 +103,10 @@ static int is_dataset(const char *name)
 		if (i > 8) return 0;
 
 		if (i==1) {
-			if ( isalpha(*p) || strchr("@#$", *p) ) continue;
+			if ( isalpha((unsigned char)*p) || strchr("@#$", *p) ) continue;
 		}
 		else {
-			if ( isalnum(*p) || strchr("@#$", *p) ) continue;
+			if ( isalnum((unsigned char)*p) || strchr("@#$", *p) ) continue;
 		}
 		return 0; // invalid character for dataset name
 	}
@@ -921,7 +921,7 @@ luaL_loadfilex (lua_State *L, const char *filename, const char *mode)
 	CLIBCRT *crt	= __crtget();
     UFS     *ufs	= crt ? crt->crtufs : NULL;
     UFSFILE *ufp	= NULL;
-	LoadF 	lf		= {0};
+	LoadF 	lf		= {.n = 0};
 	int 	status, readstatus;
 	int 	c;
 	int 	fnameindex = lua_gettop(L) + 1;  /* index of filename on the stack */
