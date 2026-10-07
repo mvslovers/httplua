@@ -1,14 +1,14 @@
 {
   "mvslovers/httpd": {
-    "sha256": "dce520bb9180f5c1514cddebbefa84d17861fef5872187cda982801399cd74e7",
-    "version": "4.1.0"
+    "sha256": "fa2873e7bbc4a2e009895aab76b5101d6ae02b57be002be72457168f4ab63d82",
+    "version": "4.2.0-dev"
   },
   "mvslovers/lua370": {
-    "sha256": "1516ded540bdfc8a4b5fc62e2300ea93110f47834155828f4e15b2c78bceb500",
-    "version": "1.1.0-dev"
+    "sha256": "e5529f4cb77fd9600cfcf54ff16809923ae44adaa765dfc2b5c59e667da4b082",
+    "version": "1.2.0-dev"
   },
   "mvslovers/ufsd": {
-    "sha256": "5959c9b81fea674717546d7fafa2007769957cd96bc7f3c003639eb4eb5c6972",
-    "version": "1.3.0"
+    "sha256": "c2eb5f98317769e07c39363f29e4884fec1fd22f803582cfb36de5f7e67ea548",
+    "version": "1.4.0-dev"
   }
 }
