@@ -5,27 +5,16 @@ name = "httplua"
 version = "1.0.0-dev"
 kind = "application"
 
-[build]
-# gnu99 for the CGI glue (httplua/cgihttpc/cgihttpd); LUA_USE_C89 +
-# LUA_USE_JUMPTABLE=0 must match lua370's build so the Lua ABI lines up.
-cflags = [
-    "-std=gnu99",
-    "-DLUA_USE_C89",
-    "-DLUA_USE_JUMPTABLE=0",
-    "-DLUA_USE_CTYPE=1",
-]
+[toolchain]
+cc370 = "1.4.0"
+libc370 = "2.6.0"
+mbt = "3.0"
 
-# Lua CGI handler. sources globs the CGI glue (httplua/cgihttpc/cgihttpd) plus
-# the CGI-patched Lua overrides (lauxlib/liolib/loadlib) — these are linked
-# directly, so they win over lua370's archived versions (autocall only pulls
-# undefined symbols).
+[build]
+cflags = ["-DLUA_USE_C89", "-DLUA_USE_JUMPTABLE=0", "-DLUA_USE_CTYPE=1"]
+
 [module.HTTPLUA]
-# httpd.a defines @@START (its CGI launcher), so mbt asks which one to take
-# (mvslovers/mbt#62). httplua.c carries its own __start (@@START), which is
-# linked directly and wins either way.
 dep_startup = true
-# RENT+REUS as 1.x was by ld370's old default: the module-data scan finds no
-# writable data in these sources (nor in lua370's library sources).
 rent = true
 reus = true
 sources = ["src/*.c"]
@@ -34,11 +23,3 @@ sources = ["src/*.c"]
 "mvslovers/lua370" = ">=1.2.0-dev"
 "mvslovers/httpd" = ">=4.2.0-dev"
 "mvslovers/ufsd" = ">=1.4.0-dev"
-
-[toolchain]
-# The versions release.yml builds the published artifacts with; build.yml
-# deliberately follows the tip of cc370 and libc370, so a regression there
-# surfaces in a PR build (mbt#68).
-cc370 = "1.4.0"
-libc370 = "2.6.0"
-mbt = "3.0"
