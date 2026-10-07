@@ -35,8 +35,8 @@ make deploy   # XMIT + upload + RECEIVE into IBMUSER.HTTPLUA.V1R0M0D.LINKLIB
 | `mvslovers/httpd`  | CGI module interface (`httpcgi.h`, libhttpd) |
 | `mvslovers/ufsd`   | UFS filesystem access (libufs) |
 
-**libc370** is the cc370 sysroot (`-lc`; provides the C runtime, `racf.h`,
-`acee.h`), not a declared dependency. To develop against an unreleased lua370,
+**libc370** is the cc370 sysroot (`-lc`; provides the C runtime, `mvs/racf.h`,
+`ibm/mvs/ihaacee.h`), not a declared dependency. To develop against an unreleased lua370,
 use a gitignored `.mbt/deps.local.toml` `[override]` pointing at `../lua370`.
 
 ## Source Files

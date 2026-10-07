@@ -27,8 +27,8 @@
 #include "lauxlib.h"
 #include "lualib.h"
 
-#include "clibcrt.h"
-#include "clibwto.h"
+#include <mvs/crt.h>
+#include <mvs/wto.h>
 #include "libufs.h"
 #include "httpcgi.h"
 
@@ -778,9 +778,8 @@ static void createclibstable (lua_State *L) {
   lua_setmetatable(L, -2);
 }
 
-#include "racf.h"
-#include "acee.h"
-#include "clibppa.h"
+#include <mvs/racf.h>
+#include <ibm/mvs/ihaacee.h>
 typedef struct upt {
 	char 	dontcare[16];
 	char    uptprefx[7];

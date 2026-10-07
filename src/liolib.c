@@ -26,8 +26,8 @@
 #include "lauxlib.h"
 #include "lualib.h"
 
-#include "clibcrt.h"
-#include "clibwto.h"
+#include <mvs/crt.h>
+#include <mvs/wto.h>
 #include "libufs.h"
 #include "httpcgi.h"
 

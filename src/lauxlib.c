@@ -31,8 +31,9 @@
 
 #include "lauxlib.h"
 
-#include "clibcrt.h"
-#include "clibwto.h"
+#include <mvs/crt.h>
+#include <mvs/wto.h>
+#include <ext/strutil.h>
 #include "libufs.h"
 #include "httpcgi.h"
 

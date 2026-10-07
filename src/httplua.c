@@ -1,16 +1,15 @@
 /* HTTPLUA.C - CGI Program, REST style CGI program to execute lua scripts */
-#include "clibary.h"
-#include "clibos.h"
-#include "clibppa.h"
-#include "clibcrt.h"
-#include "clibenv.h"
-#include "clibwto.h"
-#include "clibthrd.h"
-#include "cliblink.h"
-#include "clibgrt.h"
+#include <ext/array.h>
+#include <mvs/crt.h>
+#include <mvs/env.h>
+#include <mvs/wto.h>
+#include <mvs/thread.h>
+#include <mvs/link.h>
+#include <ext/strutil.h>
 #include "libufs.h"
 #include "httpcgi.h"
-#include "svc99.h"
+#include <mvs/dynalloc.h>
+#include <buildstamp.h>
 
 /* lua370 headers — linked directly, no HTTPLUAX vector */
 #include "lua.h"
@@ -786,7 +785,7 @@ static int open_http(lua_State *L) {
   // dumpstack(L, __func__ );
 
   /* create version */
-  lua_pushstring(L, HTTPLUA_VERSION);
+  lua_pushstring(L, MBT_VERSION);
   lua_setfield(L, -2, "server_version");
 
   /* create vars table */
